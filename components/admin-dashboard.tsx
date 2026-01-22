@@ -66,6 +66,8 @@ interface StatsInfo {
   pending: number
   approved: number
   rejected: number
+  submitted: number
+  notSubmitted: number
 }
 
 type FilterStatus = "all" | "pending" | "approved" | "rejected"
@@ -89,7 +91,9 @@ export function AdminDashboard() {
     total: 0,
     pending: 0,
     approved: 0,
-    rejected: 0
+    rejected: 0,
+    submitted: 0,
+    notSubmitted: 0
   })
   const router = useRouter()
 
@@ -119,7 +123,9 @@ export function AdminDashboard() {
         total: 0,
         pending: 0,
         approved: 0,
-        rejected: 0
+        rejected: 0,
+        submitted: 0,
+        notSubmitted: 0
       })
       setPagination(data.pagination || {
         page: 1,
@@ -176,7 +182,9 @@ export function AdminDashboard() {
           total: 0,
           pending: 0,
           approved: 0,
-          rejected: 0
+          rejected: 0,
+          submitted: 0,
+          notSubmitted: 0
         })
         
         // Force a complete page reload to clear any cached state
@@ -290,7 +298,7 @@ export function AdminDashboard() {
           <CsvUpload onUploadSuccess={() => loadRecords(currentPage, pageSize)} />
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <Card className="border-slate-200">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
@@ -342,6 +350,20 @@ export function AdminDashboard() {
                   <div>
                     <p className="text-2xl font-bold text-slate-800">{stats.rejected}</p>
                     <p className="text-sm text-slate-500">Rejected</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-lg bg-green-100 flex items-center justify-center">
+                    <CheckCircle2 className="size-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-slate-800">{stats.submitted}</p>
+                    <p className="text-sm text-slate-500">Submitted</p>
                   </div>
                 </div>
               </CardContent>
@@ -429,8 +451,7 @@ export function AdminDashboard() {
                           <TableHead className="text-slate-600">Staff ID</TableHead>
                           <TableHead className="text-slate-600">Name</TableHead>
                           <TableHead className="text-slate-600">Department</TableHead>
-                          <TableHead className="text-slate-600">National TIN</TableHead>
-                          <TableHead className="text-slate-600">FCT-IRS ID</TableHead>
+                          <TableHead className="text-slate-600">Tax IDs</TableHead>
                           <TableHead className="text-slate-600">Status</TableHead>
                           <TableHead className="text-slate-600">Submitted</TableHead>
                           <TableHead className="text-slate-600 text-right">Actions</TableHead>
@@ -438,9 +459,17 @@ export function AdminDashboard() {
                       </TableHeader>
                       <TableBody>
                         {filteredRecords.map((record) => (
-                          <TableRow key={record.id} className="border-slate-100">
+                          <TableRow 
+                            key={record.id} 
+                            className={`border-slate-100 ${record.has_submitted ? 'bg-green-50/50' : 'bg-slate-50/30'}`}
+                          >
                             <TableCell className="font-mono text-sm text-slate-700">
-                              {record.staff_id}
+                              <div className="flex items-center gap-2">
+                                {record.has_submitted && (
+                                  <div className="size-2 rounded-full bg-green-500"></div>
+                                )}
+                                {record.staff_id}
+                              </div>
                             </TableCell>
                             <TableCell className="font-medium text-slate-800">
                               {record.name}
@@ -448,11 +477,13 @@ export function AdminDashboard() {
                             <TableCell className="text-slate-600">
                               {record.department || "-"}
                             </TableCell>
-                            <TableCell className="font-mono text-sm text-slate-700">
-                              {record.national_tin || "-"}
-                            </TableCell>
-                            <TableCell className="font-mono text-sm text-slate-700">
-                              {record.fct_irs_tax_id || "-"}
+                            <TableCell className="text-slate-600">
+                              <div className="space-y-1">
+                                <div className="text-xs text-slate-500">National TIN:</div>
+                                <div className="font-mono text-sm">{record.national_tin || "-"}</div>
+                                <div className="text-xs text-slate-500">FCT-IRS ID:</div>
+                                <div className="font-mono text-sm">{record.fct_irs_tax_id || "-"}</div>
+                              </div>
                             </TableCell>
                             <TableCell>
                               <Badge
@@ -474,8 +505,21 @@ export function AdminDashboard() {
                                 {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-sm text-slate-500">
-                              {formatDate(record.submitted_at)}
+                            <TableCell className="text-sm">
+                              <div className="flex items-center gap-2">
+                                {record.has_submitted ? (
+                                  <>
+                                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+                                      Submitted
+                                    </Badge>
+                                    <span className="text-slate-500">{formatDate(record.submitted_at)}</span>
+                                  </>
+                                ) : (
+                                  <Badge variant="outline" className="text-slate-500 border-slate-300">
+                                    Not Submitted
+                                  </Badge>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-2">

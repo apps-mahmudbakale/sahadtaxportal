@@ -64,7 +64,7 @@ export async function GET(request: Request) {
     // Get stats for all records
     const { data: statsData, error: statsError } = await supabaseAdmin
       .from('staff')
-      .select('status')
+      .select('status, has_submitted')
 
     if (statsError) {
       console.error('Error fetching stats:', statsError)
@@ -80,13 +80,17 @@ export async function GET(request: Request) {
       pending: statsData?.filter(r => r.status === 'pending').length || 0,
       approved: statsData?.filter(r => r.status === 'approved').length || 0,
       rejected: statsData?.filter(r => r.status === 'rejected').length || 0,
+      submitted: statsData?.filter(r => r.has_submitted === true).length || 0,
+      notSubmitted: statsData?.filter(r => r.has_submitted === false).length || 0,
     }
 
-    // Fetch paginated records
+    // Fetch paginated records - prioritize submitted records
     const { data: records, error } = await supabaseAdmin
       .from('staff')
       .select('id, staff_id, name, department, national_tin, fct_irs_tax_id, status, submitted_at, has_submitted')
-      .order('created_at', { ascending: false })
+      .order('has_submitted', { ascending: false }) // Show submitted records first
+      .order('submitted_at', { ascending: false, nullsFirst: false }) // Then by submission date
+      .order('created_at', { ascending: false }) // Finally by creation date
       .range(offset, offset + limit - 1)
 
     if (error) {
