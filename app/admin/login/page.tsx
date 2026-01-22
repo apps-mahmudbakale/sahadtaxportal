@@ -184,7 +184,7 @@ export default function AdminLoginPage() {
 
             <div className="mt-6 pt-4 border-t border-slate-200">
               <p className="text-xs text-slate-500 text-center">
-                Demo credentials: admin@sahadhospitals.com / admin123
+               
               </p>
             </div>
           </CardContent>
