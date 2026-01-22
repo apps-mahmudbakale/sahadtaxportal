@@ -7,57 +7,21 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Spinner } from "@/components/ui/spinner"
+import { supabase } from "../lib/supabase"
 import Image from "next/image"
 
 type Step = "search" | "loading" | "edit" | "success" | "already-submitted"
 
 interface StaffData {
   id: string
+  staff_id: string
   name: string
-<<<<<<< HEAD
   department: string | null
   national_tin: string | null
   fct_irs_tax_id: string | null
   has_submitted: boolean
   status: string
-=======
-  department: string
-  nationalTin: string
-  fctIrsTaxId: string
-  hasSubmitted: boolean
->>>>>>> c93b3de1978b096cea92e2e13d8bdfa10f6c38cd
 }
-
-// Mock staff database for demonstration
-const mockStaffDatabase: Record<string, StaffData> = {
-  "SH001": {
-    id: "SH001",
-    name: "Dr. Amina Ibrahim",
-    department: "Cardiology",
-    nationalTin: "",
-    fctIrsTaxId: "",
-    hasSubmitted: false,
-  },
-  "SH002": {
-    id: "SH002",
-    name: "Nurse Chidi Okonkwo",
-    department: "Emergency Medicine",
-    nationalTin: "TIN12345678",
-    fctIrsTaxId: "FCT87654321",
-    hasSubmitted: true,
-  },
-  "SH003": {
-    id: "SH003",
-    name: "Dr. Fatima Yusuf",
-    department: "Pediatrics",
-    nationalTin: "",
-    fctIrsTaxId: "",
-    hasSubmitted: false,
-  },
-}
-
-// Track submitted IDs in session (in real app, this would be in the database)
-const submittedIds = new Set<string>(["SH002"])
 
 export function TaxIdPortal() {
   const [currentStep, setCurrentStep] = useState<Step>("search")
@@ -97,57 +61,32 @@ export function TaxIdPortal() {
     setError("")
     setCurrentStep("loading")
 
-<<<<<<< HEAD
     try {
       const { data, error } = await supabase
         .from('staff')
         .select('id, staff_id, name, department, national_tin, fct_irs_tax_id, has_submitted, status')
         .eq('staff_id', staffId.trim().toUpperCase())
         .single()
-=======
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1500))
->>>>>>> c93b3de1978b096cea92e2e13d8bdfa10f6c38cd
 
-    /*
-     * SUPABASE INTEGRATION POINT:
-     * Replace the mock lookup below with:
-     *
-     * const { data, error } = await supabase
-     *   .from('staff')
-     *   .select('id, name, department, national_tin, fct_irs_tax_id, has_submitted')
-     *   .eq('staff_id', staffId.toUpperCase())
-     *   .single()
-     *
-     * if (error || !data) {
-     *   setError("Staff ID not found. Please check and try again.")
-     *   setCurrentStep("search")
-     *   return
-     * }
-     *
-     * if (data.has_submitted) {
-     *   setStaffData(data)
-     *   setCurrentStep("already-submitted")
-     *   return
-     * }
-     */
+      if (error || !data) {
+        setError("Staff ID not found. Please check and try again.")
+        setCurrentStep("search")
+        return
+      }
 
-    const foundStaff = mockStaffDatabase[staffId.toUpperCase()]
-
-    if (foundStaff) {
-      setStaffData(foundStaff)
+      setStaffData(data)
       
       // Check if already submitted
-      if (submittedIds.has(staffId.toUpperCase()) || foundStaff.hasSubmitted) {
+      if (data.has_submitted) {
         setCurrentStep("already-submitted")
         return
       }
       
-      setNationalTin(foundStaff.nationalTin)
-      setFctIrsTaxId(foundStaff.fctIrsTaxId)
+      setNationalTin(data.national_tin || "")
+      setFctIrsTaxId(data.fct_irs_tax_id || "")
       setCurrentStep("edit")
-    } else {
-      setError("Staff ID not found. Please check and try again.")
+    } catch (err) {
+      setError("An error occurred. Please try again.")
       setCurrentStep("search")
     }
   }
@@ -161,36 +100,29 @@ export function TaxIdPortal() {
     setError("")
     setCurrentStep("loading")
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      const { error } = await supabase
+        .from('staff')
+        .update({
+          national_tin: nationalTin || null,
+          fct_irs_tax_id: fctIrsTaxId || null,
+          has_submitted: true,
+          submitted_at: new Date().toISOString(),
+          status: 'pending'
+        })
+        .eq('id', staffData?.id)
 
-    /*
-     * SUPABASE INTEGRATION POINT:
-     * Replace the mock update below with:
-     *
-     * const { error } = await supabase
-     *   .from('staff')
-     *   .update({
-     *     national_tin: nationalTin,
-     *     fct_irs_tax_id: fctIrsTaxId,
-     *     has_submitted: true,
-     *     submitted_at: new Date().toISOString()
-     *   })
-     *   .eq('staff_id', staffData?.id)
-     *
-     * if (error) {
-     *   setError("Failed to update record. Please try again.")
-     *   setCurrentStep("edit")
-     *   return
-     * }
-     */
+      if (error) {
+        setError("Failed to update record. Please try again.")
+        setCurrentStep("edit")
+        return
+      }
 
-    // Mark as submitted in session
-    if (staffData) {
-      submittedIds.add(staffData.id)
+      setCurrentStep("success")
+    } catch (err) {
+      setError("An error occurred. Please try again.")
+      setCurrentStep("edit")
     }
-
-    setCurrentStep("success")
   }
 
   const handleReset = () => {
@@ -260,11 +192,7 @@ export function TaxIdPortal() {
                   Search
                 </Button>
                 <p className="text-xs text-slate-400 text-center">
-<<<<<<< HEAD
                   Demo IDs: SH/STAFF-A, SH/STAFF001, SH/STAFF002, etc.
-=======
-                  Demo IDs: SH001 (new), SH002 (already submitted), SH003 (new)
->>>>>>> c93b3de1978b096cea92e2e13d8bdfa10f6c38cd
                 </p>
               </CardContent>
             </>

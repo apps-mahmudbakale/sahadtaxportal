@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import {
   Search,
   Download,
@@ -12,6 +13,7 @@ import {
   Building2,
   Filter,
   ChevronDown,
+  LogOut,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -32,21 +34,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Spinner } from "@/components/ui/spinner"
-<<<<<<< HEAD
 import { CsvUpload } from "@/components/csv-upload"
 import { EditStaffDialog } from "@/components/edit-staff-dialog"
 import { DeleteStaffDialog } from "@/components/delete-staff-dialog"
 import { AddStaffDialog } from "@/components/add-staff-dialog"
 import { Pagination } from "@/components/ui/pagination"
-=======
->>>>>>> c93b3de1978b096cea92e2e13d8bdfa10f6c38cd
 import Image from "next/image"
 
 interface StaffRecord {
   id: string
-  staffId: string
+  staff_id: string
   name: string
-<<<<<<< HEAD
   department: string | null
   national_tin: string | null
   fct_irs_tax_id: string | null
@@ -62,68 +60,7 @@ interface PaginationInfo {
   totalPages: number
   hasNext: boolean
   hasPrev: boolean
-=======
-  department: string
-  nationalTin: string
-  fctIrsTaxId: string
-  status: "pending" | "approved" | "rejected"
-  submittedAt: string
->>>>>>> c93b3de1978b096cea92e2e13d8bdfa10f6c38cd
 }
-
-// Mock submitted records
-const mockRecords: StaffRecord[] = [
-  {
-    id: "1",
-    staffId: "SH002",
-    name: "Nurse Chidi Okonkwo",
-    department: "Emergency Medicine",
-    nationalTin: "TIN12345678",
-    fctIrsTaxId: "FCT87654321",
-    status: "pending",
-    submittedAt: "2026-01-20T14:30:00Z",
-  },
-  {
-    id: "2",
-    staffId: "SH015",
-    name: "Dr. Aisha Bello",
-    department: "Orthopedics",
-    nationalTin: "TIN98765432",
-    fctIrsTaxId: "FCT12345678",
-    status: "approved",
-    submittedAt: "2026-01-19T10:15:00Z",
-  },
-  {
-    id: "3",
-    staffId: "SH023",
-    name: "Mr. Emmanuel Adeyemi",
-    department: "Radiology",
-    nationalTin: "TIN55667788",
-    fctIrsTaxId: "FCT99887766",
-    status: "pending",
-    submittedAt: "2026-01-18T16:45:00Z",
-  },
-  {
-    id: "4",
-    staffId: "SH008",
-    name: "Dr. Halima Musa",
-    department: "Pediatrics",
-    nationalTin: "TIN11223344",
-    fctIrsTaxId: "FCT44332211",
-    status: "approved",
-    submittedAt: "2026-01-17T09:00:00Z",
-  },
-  {
-    id: "5",
-    staffId: "SH031",
-    name: "Nurse Grace Eze",
-    department: "Cardiology",
-    nationalTin: "TIN77889900",
-    fctIrsTaxId: "",
-    status: "rejected",
-    submittedAt: "2026-01-16T11:30:00Z",
-  },
-]
 
 type FilterStatus = "all" | "pending" | "approved" | "rejected"
 
@@ -132,7 +69,6 @@ export function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all")
-<<<<<<< HEAD
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
   const [pagination, setPagination] = useState<PaginationInfo>({
@@ -144,8 +80,6 @@ export function AdminDashboard() {
     hasPrev: false
   })
   const router = useRouter()
-=======
->>>>>>> c93b3de1978b096cea92e2e13d8bdfa10f6c38cd
 
   useEffect(() => {
     loadRecords()
@@ -153,7 +87,6 @@ export function AdminDashboard() {
 
   const loadRecords = async (page: number = currentPage, limit: number = pageSize) => {
     setLoading(true)
-<<<<<<< HEAD
     
     try {
       const response = await fetch(`/api/admin/records?page=${page}&limit=${limit}`)
@@ -210,59 +143,14 @@ export function AdminDashboard() {
       // Force redirect even if API fails
       router.push('/admin')
     }
-=======
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    /*
-     * SUPABASE INTEGRATION POINT:
-     * Replace with:
-     *
-     * const { data, error } = await supabase
-     *   .from('staff')
-     *   .select('*')
-     *   .not('national_tin', 'is', null)
-     *   .order('submitted_at', { ascending: false })
-     *
-     * if (data) {
-     *   setRecords(data)
-     * }
-     */
-
-    setRecords(mockRecords)
-    setLoading(false)
-  }
-
-  const updateStatus = async (recordId: string, newStatus: "approved" | "rejected") => {
-    /*
-     * SUPABASE INTEGRATION POINT:
-     * Replace with:
-     *
-     * const { error } = await supabase
-     *   .from('staff')
-     *   .update({ status: newStatus, reviewed_at: new Date().toISOString() })
-     *   .eq('id', recordId)
-     */
-
-    setRecords((prev) =>
-      prev.map((record) =>
-        record.id === recordId ? { ...record, status: newStatus } : record
-      )
-    )
->>>>>>> c93b3de1978b096cea92e2e13d8bdfa10f6c38cd
   }
 
   // Client-side filtering for current page data
   const filteredRecords = records.filter((record) => {
     const matchesSearch =
       record.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-<<<<<<< HEAD
       record.staff_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (record.department || '').toLowerCase().includes(searchQuery.toLowerCase())
-=======
-      record.staffId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      record.department.toLowerCase().includes(searchQuery.toLowerCase())
->>>>>>> c93b3de1978b096cea92e2e13d8bdfa10f6c38cd
 
     const matchesFilter =
       filterStatus === "all" || record.status === filterStatus
@@ -277,7 +165,8 @@ export function AdminDashboard() {
     rejected: records.filter((r) => r.status === "rejected").length,
   }
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "N/A"
     return new Date(dateString).toLocaleDateString("en-NG", {
       day: "numeric",
       month: "short",
@@ -293,19 +182,13 @@ export function AdminDashboard() {
       headers.join(","),
       ...filteredRecords.map((record) =>
         [
-          record.staffId,
+          record.staff_id,
           `"${record.name}"`,
-<<<<<<< HEAD
           record.department || "",
           record.national_tin || "",
           record.fct_irs_tax_id || "",
-=======
-          record.department,
-          record.nationalTin,
-          record.fctIrsTaxId,
->>>>>>> c93b3de1978b096cea92e2e13d8bdfa10f6c38cd
           record.status,
-          formatDate(record.submittedAt),
+          formatDate(record.submitted_at),
         ].join(",")
       ),
     ].join("\n")
@@ -337,7 +220,6 @@ export function AdminDashboard() {
               <p className="text-slate-600 text-sm">Tax ID Admin Portal</p>
             </div>
           </div>
-<<<<<<< HEAD
           <div className="flex items-center gap-4">
             <a
               href="/"
@@ -355,14 +237,6 @@ export function AdminDashboard() {
               Logout
             </Button>
           </div>
-=======
-          <a
-            href="/"
-            className="text-teal-200 hover:text-white text-sm underline underline-offset-2"
-          >
-            Staff Portal
-          </a>
->>>>>>> c93b3de1978b096cea92e2e13d8bdfa10f6c38cd
         </div>
       </header>
 
@@ -523,7 +397,7 @@ export function AdminDashboard() {
                         {filteredRecords.map((record) => (
                           <TableRow key={record.id} className="border-slate-100">
                             <TableCell className="font-mono text-sm text-slate-700">
-                              {record.staffId}
+                              {record.staff_id}
                             </TableCell>
                             <TableCell className="font-medium text-slate-800">
                               {record.name}
@@ -532,10 +406,10 @@ export function AdminDashboard() {
                               {record.department || "-"}
                             </TableCell>
                             <TableCell className="font-mono text-sm text-slate-700">
-                              {record.nationalTin || "-"}
+                              {record.national_tin || "-"}
                             </TableCell>
                             <TableCell className="font-mono text-sm text-slate-700">
-                              {record.fctIrsTaxId || "-"}
+                              {record.fct_irs_tax_id || "-"}
                             </TableCell>
                             <TableCell>
                               <Badge
@@ -558,7 +432,7 @@ export function AdminDashboard() {
                               </Badge>
                             </TableCell>
                             <TableCell className="text-sm text-slate-500">
-                              {formatDate(record.submittedAt)}
+                              {formatDate(record.submitted_at)}
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-2">
