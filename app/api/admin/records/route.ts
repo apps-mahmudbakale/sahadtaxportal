@@ -61,6 +61,27 @@ export async function GET(request: Request) {
       )
     }
 
+    // Get stats for all records
+    const { data: statsData, error: statsError } = await supabaseAdmin
+      .from('staff')
+      .select('status')
+
+    if (statsError) {
+      console.error('Error fetching stats:', statsError)
+      return NextResponse.json(
+        { error: 'Failed to fetch stats' },
+        { status: 500 }
+      )
+    }
+
+    // Calculate stats
+    const stats = {
+      total: count || 0,
+      pending: statsData?.filter(r => r.status === 'pending').length || 0,
+      approved: statsData?.filter(r => r.status === 'approved').length || 0,
+      rejected: statsData?.filter(r => r.status === 'rejected').length || 0,
+    }
+
     // Fetch paginated records
     const { data: records, error } = await supabaseAdmin
       .from('staff')
@@ -80,6 +101,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ 
       records: records || [],
+      stats,
       pagination: {
         page,
         limit,

@@ -10,7 +10,6 @@ import {
   Clock,
   Users,
   FileText,
-  Building2,
   Filter,
   ChevronDown,
   LogOut,
@@ -62,6 +61,13 @@ interface PaginationInfo {
   hasPrev: boolean
 }
 
+interface StatsInfo {
+  total: number
+  pending: number
+  approved: number
+  rejected: number
+}
+
 type FilterStatus = "all" | "pending" | "approved" | "rejected"
 
 export function AdminDashboard() {
@@ -79,6 +85,12 @@ export function AdminDashboard() {
     hasNext: false,
     hasPrev: false
   })
+  const [stats, setStats] = useState<StatsInfo>({
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0
+  })
   const router = useRouter()
 
   useEffect(() => {
@@ -90,18 +102,25 @@ export function AdminDashboard() {
     
     try {
       const response = await fetch(`/api/admin/records?page=${page}&limit=${limit}`)
-      const data = await response.json()
-
+      
       if (!response.ok) {
-        console.error('Error loading records:', data.error)
+        console.error('Error loading records - Status:', response.status)
         if (response.status === 401) {
           // Unauthorized - redirect to login
-          router.push('/admin')
+          router.push('/admin/login')
         }
         return
       }
 
+      const data = await response.json()
+      
       setRecords(data.records || [])
+      setStats(data.stats || {
+        total: 0,
+        pending: 0,
+        approved: 0,
+        rejected: 0
+      })
       setPagination(data.pagination || {
         page: 1,
         limit: 50,
@@ -112,6 +131,15 @@ export function AdminDashboard() {
       })
     } catch (err) {
       console.error('Error loading records:', err)
+      // If it's a network error or JSON parsing error, also check if we need to redirect
+      try {
+        const sessionResponse = await fetch('/api/auth/session')
+        if (sessionResponse.status === 401 || !sessionResponse.ok) {
+          router.push('/admin/login')
+        }
+      } catch (sessionErr) {
+        console.error('Session check failed:', sessionErr)
+      }
     } finally {
       setLoading(false)
     }
@@ -129,19 +157,41 @@ export function AdminDashboard() {
   }
 
   const handleLogout = async () => {
+    console.log('🚪 Logout button clicked')
     try {
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
+        credentials: 'include', // Ensure cookies are sent
       })
       
+      console.log('🔄 Logout response status:', response.status)
+      
       if (response.ok) {
-        router.push('/admin')
-        router.refresh()
+        const data = await response.json()
+        console.log('✅ Logout successful:', data)
+        
+        // Clear any client-side state
+        setRecords([])
+        setStats({
+          total: 0,
+          pending: 0,
+          approved: 0,
+          rejected: 0
+        })
+        
+        // Force a complete page reload to clear any cached state
+        console.log('🔄 Forcing page reload to /admin/login')
+        window.location.href = '/admin/login'
+      } else {
+        const errorText = await response.text()
+        console.error('❌ Logout failed:', errorText)
+        // Force redirect even if API fails
+        window.location.href = '/admin/login'
       }
     } catch (error) {
-      console.error('Logout error:', error)
+      console.error('❌ Logout error:', error)
       // Force redirect even if API fails
-      router.push('/admin')
+      window.location.href = '/admin/login'
     }
   }
 
@@ -157,13 +207,6 @@ export function AdminDashboard() {
 
     return matchesSearch && matchesFilter
   })
-
-  const stats = {
-    total: pagination.total,
-    pending: records.filter((r) => r.status === "pending").length,
-    approved: records.filter((r) => r.status === "approved").length,
-    rejected: records.filter((r) => r.status === "rejected").length,
-  }
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "N/A"

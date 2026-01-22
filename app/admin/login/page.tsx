@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Spinner } from "@/components/ui/spinner"
 import Image from "next/image"
 
-export function AdminLogin() {
+export default function AdminLoginPage() {
   const [email, setEmail] = useState("admin@sahadhospitals.com")
   const [password, setPassword] = useState("admin123")
   const [showPassword, setShowPassword] = useState(false)
@@ -18,15 +18,18 @@ export function AdminLogin() {
   const [error, setError] = useState("")
   const router = useRouter()
 
-  // Check current session on load
+  // Check if already logged in
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const response = await fetch('/api/auth/session')
+        const response = await fetch('/api/auth/session', {
+          cache: 'no-store',
+          credentials: 'include'
+        })
         const data = await response.json()
         
         if (data.user) {
-          console.log("✅ Already logged in, redirecting...")
+          console.log("✅ Already logged in, redirecting to dashboard...")
           router.push("/admin/dashboard")
         }
       } catch (error) {
@@ -45,44 +48,34 @@ export function AdminLogin() {
       return
     }
 
-    setError("")
     setLoading(true)
+    setError("")
 
     try {
-      console.log("🔐 Starting login process...")
-      
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          email: email.trim(),
-          password: password,
-        }),
+        body: JSON.stringify({ email, password }),
+        credentials: 'include'
       })
 
       const data = await response.json()
-      console.log("📊 Login response:", data)
 
       if (!response.ok) {
         setError(data.error || 'Login failed')
         return
       }
 
-      if (data.success && data.user) {
-        console.log("✅ Login successful!")
-        console.log("👤 User:", data.user)
-        
-        // Redirect to admin dashboard
-        router.push("/admin/dashboard")
-        router.refresh()
+      if (data.success) {
+        console.log("✅ Login successful, redirecting to dashboard...")
+        router.push('/admin/dashboard')
       } else {
-        setError("Login failed - no user data received")
+        setError('Login failed')
       }
     } catch (err) {
-      console.error("💥 Login exception:", err)
-      setError("Network error - please try again")
+      setError('Network error - please try again')
     } finally {
       setLoading(false)
     }
@@ -120,10 +113,11 @@ export function AdminLogin() {
               Sign in to access the admin dashboard
             </CardDescription>
           </CardHeader>
+          
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-700">Email Address</Label>
+                <Label htmlFor="email" className="text-slate-700">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
                   <Input
@@ -132,7 +126,7 @@ export function AdminLogin() {
                     placeholder="admin@sahadhospitals.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-9 border-slate-200 focus-visible:border-green-500 focus-visible:ring-green-500/20"
+                    className="pl-10 border-slate-200 focus-visible:border-green-500 focus-visible:ring-green-500/20"
                     disabled={loading}
                   />
                 </div>
@@ -148,7 +142,7 @@ export function AdminLogin() {
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-9 pr-9 border-slate-200 focus-visible:border-green-500 focus-visible:ring-green-500/20"
+                    className="pl-10 pr-10 border-slate-200 focus-visible:border-green-500 focus-visible:ring-green-500/20"
                     disabled={loading}
                   />
                   <button
@@ -157,11 +151,7 @@ export function AdminLogin() {
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                     disabled={loading}
                   >
-                    {showPassword ? (
-                      <EyeOff className="size-4" />
-                    ) : (
-                      <Eye className="size-4" />
-                    )}
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </button>
                 </div>
               </div>
@@ -175,29 +165,27 @@ export function AdminLogin() {
 
               <Button
                 type="submit"
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
                 disabled={loading}
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
               >
                 {loading ? (
                   <>
                     <Spinner className="size-4" />
-                    Signing In...
+                    Signing in...
                   </>
                 ) : (
-                  "Sign In"
+                  <>
+                    <Lock className="size-4" />
+                    Sign In
+                  </>
                 )}
               </Button>
             </form>
 
             <div className="mt-6 pt-4 border-t border-slate-200">
-              <p className="text-xs text-slate-500 text-center mb-2">
-                Table-based authentication (no Supabase Auth)
+              <p className="text-xs text-slate-500 text-center">
+                Demo credentials: admin@sahadhospitals.com / admin123
               </p>
-              <div className="text-xs text-slate-400 space-y-1">
-                <p>Default: admin@sahadhospitals.com / admin123</p>
-                <p>Debug: <a href="/api/debug" className="text-green-600 underline" target="_blank">/api/debug</a></p>
-                <p>Setup: <a href="/test-supabase" className="text-green-600 underline">/test-supabase</a></p>
-              </div>
             </div>
           </CardContent>
         </Card>
