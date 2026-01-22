@@ -1,0 +1,11 @@
+staff_id,name,department,national_tin,fct_irs_tax_id
+EMP001,Dr. John Doe,Cardiology,,
+STAFF002,Nurse Jane Smith,Emergency Medicine,TIN12345678,FCT87654321
+DOC003,Dr. Mike Johnson,Pediatrics,,
+ADMIN004,Ms. Sarah Wilson,Administration,,
+SURG005,Dr. Ahmed Hassan,Surgery,TIN98765432,
+NURSE006,Nurse Mary Okafor,ICU,,
+RAD007,Dr. Grace Adebayo,Radiology,,
+LAB008,Mr. David Emeka,Laboratory,,
+DERM009,Dr. Fatima Yusuf,Dermatology,,
+ER010,Nurse Peter Nwankwo,Emergency Medicine,,
