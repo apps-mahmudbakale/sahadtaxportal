@@ -124,7 +124,7 @@ export default function AdminLoginPage() {
                     id="email"
                     type="email"
                     placeholder="admin@sahadhospitals.com"
-                    value={email}
+                    value=""
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 border-slate-200 focus-visible:border-green-500 focus-visible:ring-green-500/20"
                     disabled={loading}
@@ -140,7 +140,7 @@ export default function AdminLoginPage() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
-                    value={password}
+                    value=""
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10 border-slate-200 focus-visible:border-green-500 focus-visible:ring-green-500/20"
                     disabled={loading}
