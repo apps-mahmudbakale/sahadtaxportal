@@ -18,7 +18,7 @@ async function checkAdminAuth() {
     }
 
     const sessionData = JSON.parse(Buffer.from(sessionToken, 'base64').toString())
-    
+
     // Check if session is expired (7 days)
     const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000
     if (Date.now() - sessionData.loginTime > sevenDaysInMs) {
@@ -42,26 +42,48 @@ export async function GET(request: Request) {
       )
     }
 
-    // Get pagination parameters from URL
+    // Get parameters from URL
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
+    const search = searchParams.get('search') || ''
+    const status = searchParams.get('status') || 'all'
+    const isExport = searchParams.get('export') === 'true'
     const offset = (page - 1) * limit
 
-    // Get total count
-    const { count, error: countError } = await supabaseAdmin
+    // Base query for records
+    let query = supabaseAdmin
       .from('staff')
-      .select('*', { count: 'exact', head: true })
+      .select('id, staff_id, name, department, national_tin, fct_irs_tax_id, status, submitted_at, has_submitted', { count: 'exact' })
 
-    if (countError) {
-      console.error('Error counting records:', countError)
-      return NextResponse.json(
-        { error: 'Failed to count records' },
-        { status: 500 }
-      )
+    // Apply filters
+    if (status !== 'all') {
+      query = query.eq('status', status)
     }
 
-    // Get stats for all records
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,staff_id.ilike.%${search}%,department.ilike.%${search}%`)
+    }
+
+    // If it's an export, fetch all matching records without pagination
+    if (isExport) {
+      const { data: records, error: exportError } = await query
+        .order('has_submitted', { ascending: false })
+        .order('submitted_at', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false })
+
+      if (exportError) {
+        console.error('Error fetching export records:', exportError)
+        return NextResponse.json(
+          { error: 'Failed to fetch records for export' },
+          { status: 500 }
+        )
+      }
+
+      return NextResponse.json({ records: records || [] })
+    }
+
+    // Get stats for all records (independent of current filters for the dashboard cards)
     const { data: statsData, error: statsError } = await supabaseAdmin
       .from('staff')
       .select('status, has_submitted')
@@ -76,7 +98,7 @@ export async function GET(request: Request) {
 
     // Calculate stats
     const stats = {
-      total: count || 0,
+      total: statsData?.length || 0,
       pending: statsData?.filter(r => r.status === 'pending').length || 0,
       approved: statsData?.filter(r => r.status === 'approved').length || 0,
       rejected: statsData?.filter(r => r.status === 'rejected').length || 0,
@@ -84,10 +106,8 @@ export async function GET(request: Request) {
       notSubmitted: statsData?.filter(r => r.has_submitted === false).length || 0,
     }
 
-    // Fetch paginated records - prioritize submitted records
-    const { data: records, error } = await supabaseAdmin
-      .from('staff')
-      .select('id, staff_id, name, department, national_tin, fct_irs_tax_id, status, submitted_at, has_submitted')
+    // Fetch paginated records
+    const { data: records, count, error } = await query
       .order('has_submitted', { ascending: false }) // Show submitted records first
       .order('submitted_at', { ascending: false, nullsFirst: false }) // Then by submission date
       .order('created_at', { ascending: false }) // Finally by creation date
@@ -103,7 +123,7 @@ export async function GET(request: Request) {
 
     const totalPages = Math.ceil((count || 0) / limit)
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       records: records || [],
       stats,
       pagination: {
@@ -173,7 +193,7 @@ export async function POST(request: Request) {
 
     // Determine if record should be marked as submitted
     const hasTaxIds = !!(national_tin?.trim() || fct_irs_tax_id?.trim())
-    
+
     // Create record
     const { error } = await supabaseAdmin
       .from('staff')
@@ -230,9 +250,9 @@ export async function PATCH(request: Request) {
     // Update record status
     const { error } = await supabaseAdmin
       .from('staff')
-      .update({ 
-        status: status, 
-        reviewed_at: new Date().toISOString() 
+      .update({
+        status: status,
+        reviewed_at: new Date().toISOString()
       })
       .eq('id', recordId)
 
@@ -311,7 +331,7 @@ export async function PUT(request: Request) {
 
     // Determine if record should be marked as submitted
     const hasTaxIds = !!(national_tin?.trim() || fct_irs_tax_id?.trim())
-    
+
     // Update record
     const { error } = await supabaseAdmin
       .from('staff')

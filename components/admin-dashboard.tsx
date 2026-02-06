@@ -98,15 +98,24 @@ export function AdminDashboard() {
   const router = useRouter()
 
   useEffect(() => {
-    loadRecords()
-  }, [])
+    const timer = setTimeout(() => {
+      loadRecords(1, pageSize, searchQuery, filterStatus)
+      setCurrentPage(1)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [searchQuery, filterStatus])
 
-  const loadRecords = async (page: number = currentPage, limit: number = pageSize) => {
+  const loadRecords = async (
+    page: number = currentPage,
+    limit: number = pageSize,
+    search: string = searchQuery,
+    status: string = filterStatus
+  ) => {
     setLoading(true)
-    
+
     try {
-      const response = await fetch(`/api/admin/records?page=${page}&limit=${limit}`)
-      
+      const response = await fetch(`/api/admin/records?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}&status=${status}`)
+
       if (!response.ok) {
         console.error('Error loading records - Status:', response.status)
         if (response.status === 401) {
@@ -117,7 +126,7 @@ export function AdminDashboard() {
       }
 
       const data = await response.json()
-      
+
       setRecords(data.records || [])
       setStats(data.stats || {
         total: 0,
@@ -153,13 +162,13 @@ export function AdminDashboard() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
-    loadRecords(page, pageSize)
+    loadRecords(page, pageSize, searchQuery, filterStatus)
   }
 
   const handlePageSizeChange = (size: number) => {
     setPageSize(size)
     setCurrentPage(1)
-    loadRecords(1, size)
+    loadRecords(1, size, searchQuery, filterStatus)
   }
 
   const handleLogout = async () => {
@@ -169,13 +178,13 @@ export function AdminDashboard() {
         method: 'POST',
         credentials: 'include', // Ensure cookies are sent
       })
-      
+
       console.log('🔄 Logout response status:', response.status)
-      
+
       if (response.ok) {
         const data = await response.json()
         console.log('✅ Logout successful:', data)
-        
+
         // Clear any client-side state
         setRecords([])
         setStats({
@@ -186,7 +195,7 @@ export function AdminDashboard() {
           submitted: 0,
           notSubmitted: 0
         })
-        
+
         // Force a complete page reload to clear any cached state
         console.log('🔄 Forcing page reload to /admin/login')
         window.location.href = '/admin/login'
@@ -203,18 +212,8 @@ export function AdminDashboard() {
     }
   }
 
-  // Client-side filtering for current page data
-  const filteredRecords = records.filter((record) => {
-    const matchesSearch =
-      record.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      record.staff_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (record.department || '').toLowerCase().includes(searchQuery.toLowerCase())
-
-    const matchesFilter =
-      filterStatus === "all" || record.status === filterStatus
-
-    return matchesSearch && matchesFilter
-  })
+  // Server-side filtering is now used, records state contains the filtered data
+  const filteredRecords = records
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "N/A"
@@ -227,29 +226,45 @@ export function AdminDashboard() {
     })
   }
 
-  const exportToCSV = () => {
-    const headers = ["Staff ID", "Name", "Department", "National TIN", "FCT-IRS Tax ID", "Status", "Submitted At"]
-    const csvContent = [
-      headers.join(","),
-      ...filteredRecords.map((record) =>
-        [
-          record.staff_id,
-          `"${record.name}"`,
-          record.department || "",
-          record.national_tin || "",
-          record.fct_irs_tax_id || "",
-          record.status,
-          formatDate(record.submitted_at),
-        ].join(",")
-      ),
-    ].join("\n")
+  const exportToCSV = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/admin/records?export=true&search=${encodeURIComponent(searchQuery)}&status=${filterStatus}`)
 
-    const blob = new Blob([csvContent], { type: "text/csv" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `tax-id-records-${new Date().toISOString().split("T")[0]}.csv`
-    link.click()
+      if (!response.ok) {
+        throw new Error('Failed to fetch records for export')
+      }
+
+      const { records: allRecords } = await response.json()
+
+      const headers = ["Staff ID", "Name", "Department", "National TIN", "FCT-IRS Tax ID", "Status", "Submitted At"]
+      const csvContent = [
+        headers.join(","),
+        ...allRecords.map((record: StaffRecord) =>
+          [
+            record.staff_id,
+            `"${record.name}"`,
+            record.department || "",
+            record.national_tin || "",
+            record.fct_irs_tax_id || "",
+            record.status,
+            formatDate(record.submitted_at),
+          ].join(",")
+        ),
+      ].join("\n")
+
+      const blob = new Blob([csvContent], { type: "text/csv" })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = `tax-id-records-${new Date().toISOString().split("T")[0]}.csv`
+      link.click()
+    } catch (err) {
+      console.error('Export failed:', err)
+      alert('Failed to export records. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -459,8 +474,8 @@ export function AdminDashboard() {
                       </TableHeader>
                       <TableBody>
                         {filteredRecords.map((record) => (
-                          <TableRow 
-                            key={record.id} 
+                          <TableRow
+                            key={record.id}
                             className={`border-slate-100 ${record.has_submitted ? 'bg-green-50/50' : 'bg-slate-50/30'}`}
                           >
                             <TableCell className="font-mono text-sm text-slate-700">
@@ -523,12 +538,12 @@ export function AdminDashboard() {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-2">
-                                <EditStaffDialog 
-                                  record={record} 
+                                <EditStaffDialog
+                                  record={record}
                                   onSuccess={() => loadRecords(currentPage, pageSize)}
                                 />
-                                <DeleteStaffDialog 
-                                  record={record} 
+                                <DeleteStaffDialog
+                                  record={record}
                                   onSuccess={() => loadRecords(currentPage, pageSize)}
                                 />
                               </div>
@@ -541,7 +556,7 @@ export function AdminDashboard() {
                 </div>
               )}
             </CardContent>
-            
+
             {/* Pagination */}
             {!loading && records.length > 0 && (
               <div className="px-6 pb-6">
